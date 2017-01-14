@@ -53,6 +53,7 @@ class Vulkan {
     VDeleter<VkSwapchainKHR> swapchain_{device_, vkDestroySwapchainKHR};
     VDeleter<VkSurfaceKHR> surface_{instance_, vkDestroySurfaceKHR};
     std::vector<VkImage> swapchain_images_;
+    std::vector<VDeleter<VkImageView>> sc_image_views_;
     VkFormat swapchain_format_;
     VkExtent2D swapchain_extent_;
     VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
@@ -148,6 +149,9 @@ class Vulkan {
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
 
     void createSwapChain();
+    void createImageViews();
+    void createGraphicsPipeline();
+    void createShaderModule(const std::vector<char>& code, VDeleter<VkShaderModule>& shaderModule);
 };
 
 

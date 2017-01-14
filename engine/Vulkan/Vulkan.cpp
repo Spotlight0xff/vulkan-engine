@@ -5,6 +5,7 @@
 #include <set>
 #include <limits>
 #include "Vulkan.h"
+#include "../util.h"
 
 
 namespace engine {
@@ -29,6 +30,8 @@ void Vulkan::initVulkan() {
   selectPhysicalDevice();
   createLogicalDevice();
   createSwapChain();
+  createImageViews();
+  createGraphicsPipeline();
 }
 
 /*
@@ -268,8 +271,58 @@ void Vulkan::createSwapChain() {
 
   swapchain_format_ = format.format;
   swapchain_extent_ = extent;
-
 }
+
+
+// Create the image views to the images in the swap chain
+void Vulkan::createImageViews() {
+  sc_image_views_.resize(swapchain_images_.size(), VDeleter<VkImageView>{device_, vkDestroyImageView});
+  for(size_t i = 0; i < swapchain_images_.size(); i++) {
+    VkImageViewCreateInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    info.format = swapchain_format_;
+    info.image = swapchain_images_[i];
+    info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    // default mapping:
+    info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+    info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+    info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+    info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+    info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    info.subresourceRange.baseMipLevel = 0;
+    info.subresourceRange.layerCount = 1;
+    info.subresourceRange.levelCount = 1;
+    info.subresourceRange.baseArrayLayer = 0;
+    if (vkCreateImageView(device_, &info, nullptr, sc_image_views_[i].replace()) != VK_SUCCESS) {
+      throw std::runtime_error("failed to create image views!");
+    }
+  }
+  std::cout << "Created " << swapchain_images_.size() << " image views successfully.\n";
+}
+
+
+void Vulkan::createGraphicsPipeline() {
+  auto vert_shader_source = util::readFile("shaders/vert.spv");
+  auto frag_shader_source = util::readFile("shaders/frag.spv");
+
+
+  VDeleter<VkShaderModule> vert_shader_module{device_, vkDestroyShaderModule};
+  VDeleter<VkShaderModule> frag_shader_module{device_, vkDestroyShaderModule};
+
+  createShaderModule(vert_shader_source, vert_shader_module);
+  createShaderModule(frag_shader_source, frag_shader_module);
+}
+
+void Vulkan::createShaderModule(const std::vector<char>& code, VDeleter<VkShaderModule>& module) {
+  VkShaderModuleCreateInfo info = {};
+  info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+  info.codeSize = code.size();
+  info.pCode = (uint32_t*) code.data();
+  if (vkCreateShaderModule(device_, &info, nullptr, module.replace()) != VK_SUCCESS) {
+    throw std::runtime_error("failed to create shader module!");
+  }
+}
+
 
 QueueFamilyIndices Vulkan::findQueueFamilies(VkPhysicalDevice device) {
   QueueFamilyIndices indices;
