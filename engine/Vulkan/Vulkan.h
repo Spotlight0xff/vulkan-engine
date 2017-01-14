@@ -30,6 +30,13 @@ struct QueueFamilyIndices {
   }
 };
 
+// Used to query swap chain supported capabilities
+struct SwapChainSupportDetails {
+  VkSurfaceCapabilitiesKHR capabilities;
+  std::vector<VkSurfaceFormatKHR> formats;
+  std::vector<VkPresentModeKHR> present_modes;
+};
+
 
 class Vulkan {
   public:
@@ -127,6 +134,8 @@ class Vulkan {
     void createSurface();
 
     bool checkDeviceExtensionsSupport(VkPhysicalDevice const &device);
+
+    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice const &device);
 };
 
 

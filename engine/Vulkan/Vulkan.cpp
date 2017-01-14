@@ -97,12 +97,30 @@ void Vulkan::selectPhysicalDevice() {
  * Determine if a device has the capabilities we need
  */
 bool Vulkan::isDeviceSuitable(VkPhysicalDevice const& device) {
-  // TODO:
-  // * check if discrete
+  // check queue families
   QueueFamilyIndices indices = findQueueFamilies(device);
+  if (!indices.isComplete()) {
+    return false;
+  }
+
+  // check physical device extensions
   bool all_extensions_supported = checkDeviceExtensionsSupport(device);
-  return indices.isComplete() &&
-          all_extensions_supported;
+  if (!all_extensions_supported) {
+    return false;
+  }
+
+  // check swap chain support
+  SwapChainSupportDetails swapchain_support = querySwapChainSupport(device);
+  if (swapchain_support.formats.empty()) {
+    std::cout << "no formats\n";
+    return false;
+  }
+  if (swapchain_support.present_modes.empty()) {
+    std::cout << "no presentation modes\n";
+    return false;
+  }
+
+  return true;
 }
 
 
@@ -217,6 +235,34 @@ QueueFamilyIndices Vulkan::findQueueFamilies(VkPhysicalDevice device) {
 
 }
 
+// popule the swapchain support structure with the capabilities
+SwapChainSupportDetails Vulkan::querySwapChainSupport(VkPhysicalDevice const& device) {
+  SwapChainSupportDetails details;
+
+  // Query surface capabilities
+  vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface_, &details.capabilities);
+
+  // Query available formats for surface
+  uint32_t format_count = 0;
+  vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface_, &format_count, nullptr);
+  std::cout << "Number of surface formats found: " << format_count << "\n";
+
+  if (format_count != 0) {
+    details.formats.resize(format_count);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface_, &format_count, details.formats.data());
+  }
+
+  // Query presentation modes for surface
+  uint32_t modes_count = 0;
+  vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface_, &modes_count, nullptr);
+  std::cout << "Number of presentation modes found: " << modes_count << "\n";
+  if (modes_count) {
+    details.present_modes.resize(modes_count);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface_, &modes_count, details.present_modes.data());
+  }
+
+  return details;
+}
 /*
  * Initialize GLFW window and setup input
  */
