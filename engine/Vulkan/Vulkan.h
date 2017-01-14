@@ -50,8 +50,12 @@ class Vulkan {
     VDeleter<VkDebugReportCallbackEXT> debug_cb_{instance_, DestroyDebugReportCallbackEXT};
     //VDeleter<VkPhysicalDevice> device_{instance_, vkDestroyDevice};
     VDeleter<VkDevice> device_{vkDestroyDevice};
-    VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
+    VDeleter<VkSwapchainKHR> swapchain_{device_, vkDestroySwapchainKHR};
     VDeleter<VkSurfaceKHR> surface_{instance_, vkDestroySurfaceKHR};
+    std::vector<VkImage> swapchain_images_;
+    VkFormat swapchain_format_;
+    VkExtent2D swapchain_extent_;
+    VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
     VkQueue graphics_queue_;
     VkQueue presentation_queue_;
 
@@ -136,6 +140,14 @@ class Vulkan {
     bool checkDeviceExtensionsSupport(VkPhysicalDevice const &device);
 
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice const &device);
+
+    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &formats);
+
+    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes);
+
+    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
+
+    void createSwapChain();
 };
 
 

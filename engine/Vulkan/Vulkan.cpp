@@ -3,6 +3,7 @@
 //
 
 #include <set>
+#include <limits>
 #include "Vulkan.h"
 
 
@@ -27,6 +28,7 @@ void Vulkan::initVulkan() {
   createSurface();
   selectPhysicalDevice();
   createLogicalDevice();
+  createSwapChain();
 }
 
 /*
@@ -203,6 +205,72 @@ void Vulkan::createSurface() {
   }
 }
 
+
+void Vulkan::createSwapChain() {
+  SwapChainSupportDetails sc_support = querySwapChainSupport(physical_device_);
+
+  VkSurfaceFormatKHR format = chooseSwapSurfaceFormat(sc_support.formats);
+  VkPresentModeKHR mode = chooseSwapPresentMode(sc_support.present_modes);
+  VkExtent2D extent = chooseSwapExtent(sc_support.capabilities);
+
+  // We want triple-buffering (but respect the max numbers of images)
+  uint32_t image_count = sc_support.capabilities.minImageCount + 1;
+  if (sc_support.capabilities.maxImageCount > 0 && image_count > sc_support.capabilities.maxImageCount) {
+    image_count = sc_support.capabilities.maxImageCount;
+  }
+
+  // Now that we decided all the options, lets finally create the swap-chain!
+  VkSwapchainCreateInfoKHR info = {};
+  info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+  info.surface = surface_;
+  info.minImageCount = image_count;
+  info.imageFormat = format.format;
+  info.imageColorSpace = format.colorSpace;
+  info.presentMode = mode;
+  info.imageExtent = extent;
+  info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+  info.imageArrayLayers = 1; // amount of layers in each image
+
+  // we don't want any transformation for now
+  info.preTransform = sc_support.capabilities.currentTransform;
+
+  // ignore alpha channel
+  info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+
+  // we don't care about obscured pixels
+  info.clipped = VK_TRUE;
+
+  // we assume that we only have one swap chain ever (for now at least)
+  info.oldSwapchain = VK_NULL_HANDLE;
+
+
+  // Decide how we will handle swap chain images across separate queue families
+  QueueFamilyIndices indices = findQueueFamilies(physical_device_);
+  uint32_t queueFamilyIndices[] = {(uint32_t) indices.graphics_family, (uint32_t) indices.presentation_family};
+
+  // If they are on different queues, do concurrent, otherwise exclusive
+  if (indices.graphics_family != indices.presentation_family) {
+    info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+    info.queueFamilyIndexCount = 2;
+    info.pQueueFamilyIndices = queueFamilyIndices;
+  } else {
+    info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  }
+
+  if (vkCreateSwapchainKHR(device_, &info, nullptr, swapchain_.replace()) != VK_SUCCESS) {
+    throw std::runtime_error("failed to create swap chain!");
+  }
+
+  std::cout << "Created swap chain successfully.\n";
+  vkGetSwapchainImagesKHR(device_, swapchain_, &image_count, nullptr);
+  swapchain_images_.resize(image_count);
+  vkGetSwapchainImagesKHR(device_, swapchain_, &image_count, swapchain_images_.data());
+
+  swapchain_format_ = format.format;
+  swapchain_extent_ = extent;
+
+}
+
 QueueFamilyIndices Vulkan::findQueueFamilies(VkPhysicalDevice device) {
   QueueFamilyIndices indices;
   uint32_t family_count = 0;
@@ -263,6 +331,48 @@ SwapChainSupportDetails Vulkan::querySwapChainSupport(VkPhysicalDevice const& de
 
   return details;
 }
+
+VkSurfaceFormatKHR Vulkan::chooseSwapSurfaceFormat(std::vector<VkSurfaceFormatKHR> const& formats) {
+  // best case:
+  // surface has no preferred format, we can choose freely :)
+  if (formats.size() == 1 && formats[0].format == VK_FORMAT_UNDEFINED) {
+    std::cout << "best case for surface\n";
+    return {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+  }
+
+  for (const auto& format : formats) {
+    // colorspace: SRGB, format=RGB
+    if (format.format == VK_FORMAT_B8G8R8A8_UNORM && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+      return format;
+    }
+  }
+  // alright, just default to the first one
+  return formats[0];
+}
+
+// choose the presentation mode for the surface
+// just use FIFO for now (basically vsync)
+VkPresentModeKHR Vulkan::chooseSwapPresentMode(const std::vector<VkPresentModeKHR> present_modes) {
+  return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+/*
+ * choose the resolution of the swap chain images
+ * If vulkan tells us to use the current extent, we do so.
+ * Otherwise, get the largest resolution we can get.
+ */
+VkExtent2D Vulkan::chooseSwapExtent(VkSurfaceCapabilitiesKHR const& capabilities) {
+  if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+    return capabilities.currentExtent;
+  }
+  VkExtent2D actual = {uint32_t(width_), uint32_t(height_)};
+
+  actual.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actual.width));
+  actual.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actual.height));
+
+  return actual;
+}
+
 /*
  * Initialize GLFW window and setup input
  */
