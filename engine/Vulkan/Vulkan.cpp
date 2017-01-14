@@ -311,8 +311,147 @@ void Vulkan::createGraphicsPipeline() {
 
   createShaderModule(vert_shader_source, vert_shader_module);
   createShaderModule(frag_shader_source, frag_shader_module);
+
+  // specify shader module in graphics pipeline
+  VkPipelineShaderStageCreateInfo vert_stage_info = {};
+  vert_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+  vert_stage_info.module = vert_shader_module;
+  vert_stage_info.pName = "main";
+  vert_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
+
+  // specify fragment shader in graphics pipeline
+  VkPipelineShaderStageCreateInfo frag_stage_info = {};
+  frag_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+  frag_stage_info.module = frag_shader_module;
+  frag_stage_info.pName = "main";
+  frag_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+  VkPipelineShaderStageCreateInfo shader_stages[] = {vert_stage_info, frag_stage_info};
+
+
+  VkPipelineVertexInputStateCreateInfo vertex_input_info = {};
+  vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+
+  // We don't load vertex data for now, we specify directly in the shaders
+  // We'll change this later :)
+  vertex_input_info.vertexAttributeDescriptionCount = 0;
+  vertex_input_info.pVertexAttributeDescriptions = nullptr;
+  vertex_input_info.vertexBindingDescriptionCount = 0;
+  vertex_input_info.pVertexBindingDescriptions = nullptr;
+
+  VkPipelineInputAssemblyStateCreateInfo input_assembly = {};
+  input_assembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+  input_assembly.primitiveRestartEnable = VK_FALSE; // used for element buffers
+  input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; // just triangles for now
+
+
+  VkViewport viewport = {};
+  viewport.x = 0;
+  viewport.y = 0;
+  viewport.width = float(swapchain_extent_.width);
+  viewport.height = float(swapchain_extent_.height);
+  viewport.minDepth = 0.0f;
+  viewport.maxDepth = 1.0f;
+
+  // nothing special, draw the whole fb
+  VkRect2D scissor = {};
+  scissor.offset = {0, 0};
+  scissor.extent = swapchain_extent_;
+
+  // we just use one viewport and one scissor, nothing fancy here
+  VkPipelineViewportStateCreateInfo viewport_state = {};
+  viewport_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+  viewport_state.viewportCount = 1;
+  viewport_state.pViewports = &viewport;
+  viewport_state.scissorCount = 1;
+  viewport_state.pScissors = &scissor;
+
+
+  // perform rasterization
+  VkPipelineRasterizationStateCreateInfo rasterizer_info = {};
+  rasterizer_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+  rasterizer_info.depthClampEnable = VK_FALSE; // clamp using near & far plane
+  rasterizer_info.rasterizerDiscardEnable = VK_FALSE;
+  // determine how fragments are generated for vertices:
+  // VK_POLYGON_MODE_FILL: fill the area of the polygon with fragments
+  // VK_POLYGON_MODE_LINE: draw polygon edges as lines (requires GPU feature)
+  // VK_POLYGON_MODE_POINT: polygon vertices are drawn as points (required GPU feature)
+  rasterizer_info.polygonMode = VK_POLYGON_MODE_FILL;
+  rasterizer_info.lineWidth = 1.0f;
+  rasterizer_info.cullMode = VK_CULL_MODE_BACK_BIT; // determine face culling
+  rasterizer_info.depthBiasEnable = VK_FALSE;
+  rasterizer_info.depthBiasConstantFactor = 0.0f; // Optional
+  rasterizer_info.depthBiasClamp = 0.0f; // Optional
+  rasterizer_info.depthBiasSlopeFactor = 0.0f; // Optional
+
+
+
+  // perform multi-sampling
+  // We don't use it for now, but we'll change this later (TODO)
+  VkPipelineMultisampleStateCreateInfo multisampling = {};
+  multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+  multisampling.sampleShadingEnable = VK_FALSE;
+  multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+  multisampling.minSampleShading = 1.0f; // Optional
+  multisampling.pSampleMask = nullptr; /// Optional
+  multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
+  multisampling.alphaToOneEnable = VK_FALSE; // Optional
+
+
+  // We don't use depth and stencil buffer r/n
+  //VkPipelineDepthStencilStateCreateInfo depth_stencil_info = {};
+
+  // perform color blending
+  // this happens after the fragment shader
+  // and combines it with the color from the framebuffer
+  VkPipelineColorBlendAttachmentState color_blend_attach = {};
+  // RGBA:
+  color_blend_attach.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+  color_blend_attach.blendEnable = VK_FALSE; // disable blending for now
+  color_blend_attach.srcColorBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
+  color_blend_attach.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
+  color_blend_attach.colorBlendOp = VK_BLEND_OP_ADD; // Optional
+  color_blend_attach.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
+  color_blend_attach.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
+  color_blend_attach.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
+
+  // with alpha-blending enabled: see VkBlendFactor and VkBlendOp
+  //color_blend_attach.blendEnable = VK_TRUE;
+  //color_blend_attach.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+  //color_blend_attach.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+  //color_blend_attach.colorBlendOp = VK_BLEND_OP_ADD;
+  //color_blend_attach.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+  //color_blend_attach.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+  //color_blend_attach.alphaBlendOp = VK_BLEND_OP_ADD;
+
+  // Set the stuff we can change without recreating the whole graphics pipeline
+  VkDynamicState dynamic_states[] = {
+          VK_DYNAMIC_STATE_VIEWPORT,
+          VK_DYNAMIC_STATE_LINE_WIDTH
+  };
+
+  VkPipelineDynamicStateCreateInfo dynamic_state = {};
+  dynamic_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+  dynamic_state.dynamicStateCount = 2;
+  dynamic_state.pDynamicStates = dynamic_states;
+
+  VkPipelineLayoutCreateInfo pipeline_layout_info = {};
+  pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+  pipeline_layout_info.setLayoutCount = 0; // Optional
+  pipeline_layout_info.pSetLayouts = nullptr; // Optional
+  pipeline_layout_info.pushConstantRangeCount = 0; // Optional
+  pipeline_layout_info.pPushConstantRanges = 0; // Optional
+
+  if (vkCreatePipelineLayout(device_, &pipeline_layout_info, nullptr,
+                             pipeline_layout_.replace()) != VK_SUCCESS) {
+    throw std::runtime_error("failed to create pipeline layout!");
+  }
+  std::cout << "Created graphics pipeline successfully.\n";
 }
 
+/*
+ * create a new SPIR-V shadermodule from bytecode
+ */
 void Vulkan::createShaderModule(const std::vector<char>& code, VDeleter<VkShaderModule>& module) {
   VkShaderModuleCreateInfo info = {};
   info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;

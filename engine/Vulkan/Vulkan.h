@@ -59,6 +59,8 @@ class Vulkan {
     VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
     VkQueue graphics_queue_;
     VkQueue presentation_queue_;
+    VDeleter<VkPipelineLayout> pipeline_layout_{device_, vkDestroyPipelineLayout};
+
 
 
     GLFWwindow* window_;
