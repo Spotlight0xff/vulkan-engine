@@ -96,10 +96,32 @@ void Vulkan::selectPhysicalDevice() {
 /*
  * Determine if a device has the capabilities we need
  */
-bool Vulkan::isDeviceSuitable(VkPhysicalDevice& device) {
+bool Vulkan::isDeviceSuitable(VkPhysicalDevice const& device) {
   // TODO:
   // * check if discrete
-  return findQueueFamilies(device).isComplete();
+  QueueFamilyIndices indices = findQueueFamilies(device);
+  bool all_extensions_supported = checkDeviceExtensionsSupport(device);
+  return indices.isComplete() &&
+          all_extensions_supported;
+}
+
+
+/*
+ * Check if the physical device implements the required device extensions
+ * Returns true if all are implemented.
+ */
+bool Vulkan::checkDeviceExtensionsSupport(VkPhysicalDevice const& device) {
+  uint32_t count = 0;
+  vkEnumerateDeviceExtensionProperties(device, nullptr, &count, nullptr);
+  std::vector<VkExtensionProperties> available_extensions(count);
+  vkEnumerateDeviceExtensionProperties(device, nullptr, &count, available_extensions.data());
+
+  std::set<std::string> required_extensions(required_device_extensions_.begin(),
+  required_device_extensions_.end());
+  for(auto const& ext : available_extensions) {
+    required_extensions.erase(ext.extensionName);
+  }
+  return required_extensions.empty();
 }
 
 
@@ -136,6 +158,10 @@ void Vulkan::createLogicalDevice() {
   create_info.pQueueCreateInfos = queue_create_infos.data();
   create_info.queueCreateInfoCount = queue_create_infos.size();
   create_info.pEnabledFeatures = &features;
+
+  // required
+  create_info.enabledExtensionCount = required_device_extensions_.size();
+  create_info.ppEnabledExtensionNames = required_device_extensions_.data();
 
   // Set the validation layers, if are on DEBUG
   if (enable_validation_) {

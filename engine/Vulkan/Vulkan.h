@@ -56,6 +56,11 @@ class Vulkan {
             "VK_LAYER_LUNARG_standard_validation"
     };
 
+    // vector of required extensions which we check in isDeviceSuitable
+    const std::vector<const char*> required_device_extensions_ = {
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    };
+
 #ifdef NDEBUG
     const bool enable_validation_ = false;
 #else
@@ -86,7 +91,7 @@ class Vulkan {
     void setupDebugCallback();
 
     void selectPhysicalDevice();
-    bool isDeviceSuitable(VkPhysicalDevice& device);
+    bool isDeviceSuitable(VkPhysicalDevice const& device);
 
     // load extension function "vkCreateDebugReportCallbackEXT"
     static VkResult CreateDebugReportCallbackEXT(VkInstance instance, const VkDebugReportCallbackCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugReportCallbackEXT* pCallback) {
@@ -120,6 +125,8 @@ class Vulkan {
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
 
     void createSurface();
+
+    bool checkDeviceExtensionsSupport(VkPhysicalDevice const &device);
 };
 
 
