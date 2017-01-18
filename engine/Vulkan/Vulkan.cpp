@@ -61,16 +61,18 @@ void Vulkan::createInstance() {
   instance_info.ppEnabledExtensionNames = extensions.data();
   instance_info.enabledLayerCount = 0; // global validation layers
 
-  VkResult result = vkCreateInstance(&instance_info, nullptr, instance_.replace());
-  if (result != VK_SUCCESS) {
-    throw std::runtime_error("Failed to create Vulkan instance");
-  }
 
   if (enable_validation_ && checkValidationLayers()) {
     instance_info.enabledLayerCount = requested_validation_layers_.size();
     instance_info.ppEnabledLayerNames = requested_validation_layers_.data();
     std::cout << "Enabled " << requested_validation_layers_.size() << " validation layers\n";
   }
+
+  VkResult result = vkCreateInstance(&instance_info, nullptr, instance_.replace());
+  if (result != VK_SUCCESS) {
+    throw std::runtime_error("Failed to create Vulkan instance");
+  }
+
   std::cout << "Initialized Vulkan instance successfully.\n";
 }
 
