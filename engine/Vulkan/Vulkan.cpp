@@ -36,6 +36,7 @@ void Vulkan::initVulkan() {
   createFramebuffers();
   createCommandPool();
   createCommandBuffers();
+  createSemaphores();
 }
 
 /*
@@ -537,6 +538,24 @@ void Vulkan::createRenderpass() {
   renderpass.subpassCount = 1;
   renderpass.pSubpasses = &subpass;
 
+  // TODO: understand subpass dependencies better
+
+  VkSubpassDependency dependency = {};
+  // external(implicit) subpass -> our subpass
+  dependency.srcSubpass = VK_SUBPASS_EXTERNAL; // external: implicit subpass before
+  dependency.dstSubpass = 0; // our created subpass
+
+  // we need to wait on the swap chain to read the image
+  dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  dependency.srcAccessMask = 0;
+
+  dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+  renderpass.dependencyCount = 1;
+  renderpass.pDependencies = &dependency;
+
+
   if (vkCreateRenderPass(device_, &renderpass, nullptr, renderpass_.replace()) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create render pass");
   }
@@ -626,7 +645,9 @@ void Vulkan::createCommandBuffers() {
     render_info.renderArea.offset = {0, 0};
     render_info.renderArea.extent = swapchain_extent_;
 
-    VkClearValue clear_color = {0.2, 0.3, 0.3, 1.0};
+    //VkClearValue clear_color = {0.2, 0.3, 0.3, 1.0};
+    VkClearValue clear_color = {0.0f, 0.0f, 0.0f, 1.0f};
+
     render_info.clearValueCount = 1;
     render_info.pClearValues = &clear_color;
 
@@ -669,6 +690,7 @@ void Vulkan::createShaderModule(const std::vector<char>& code, VDeleter<VkShader
   if (vkCreateShaderModule(device_, &info, nullptr, module.replace()) != VK_SUCCESS) {
     throw std::runtime_error("failed to create shader module!");
   }
+  std::cout << "Created shader module successfully.\n";
 }
 
 
@@ -806,7 +828,46 @@ void Vulkan::mainLoop() {
 }
 
 void Vulkan::drawFrame() {
+  uint32_t image_index;
 
+  // acquire next image, without timeout
+  VkResult result = vkAcquireNextImageKHR(device_, swapchain_, std::numeric_limits<uint64_t>::max(),
+  image_available_, VK_NULL_HANDLE, &image_index);
+
+  VkSubmitInfo submit_info = {};
+  submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  submit_info.commandBufferCount = 1;
+  submit_info.pCommandBuffers = &command_buffers_[image_index];
+
+  VkSemaphore wait_semaphores[] = {image_available_};
+  VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+  submit_info.waitSemaphoreCount = 1;
+  submit_info.pWaitSemaphores = wait_semaphores;
+  submit_info.pWaitDstStageMask = wait_stages;
+
+
+  VkSemaphore signal_semaphores[] = {render_finished_};
+  submit_info.signalSemaphoreCount = 1;
+  submit_info.pSignalSemaphores = signal_semaphores;
+
+  if (vkQueueSubmit(graphics_queue_, 1, &submit_info, VK_NULL_HANDLE) != VK_SUCCESS) {
+    throw std::runtime_error("Failed to submit command buffer");
+  }
+
+
+  VkPresentInfoKHR present_info = {};
+  present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+  present_info.waitSemaphoreCount = 1;
+  present_info.pWaitSemaphores = signal_semaphores;
+
+  VkSwapchainKHR swap_chains[] = {swapchain_};
+  present_info.swapchainCount = 1;
+  present_info.pSwapchains = swap_chains;
+  present_info.pImageIndices = &image_index;
+
+  present_info.pResults = nullptr;
+
+  result = vkQueuePresentKHR(presentation_queue_, &present_info);
 }
 
 void Vulkan::cbKeyboardDispatcher(

@@ -181,6 +181,8 @@ class Vulkan {
     void createCommandBuffers();
 
     void createSemaphores();
+
+    void drawFrame();
 };
 }
 
