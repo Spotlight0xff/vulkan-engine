@@ -33,6 +33,7 @@ void Vulkan::initVulkan() {
   createImageViews();
   createRenderpass();
   createGraphicsPipeline();
+  createFramebuffers();
 }
 
 /*
@@ -539,6 +540,34 @@ void Vulkan::createRenderpass() {
   }
   std::cout << "Created render pass successfully.\n";
 }
+
+void Vulkan::createFramebuffers() {
+  // match number of image views
+  sc_framebuffers_.resize(sc_image_views_.size(), VDeleter<VkFramebuffer> {device_, vkDestroyFramebuffer});
+
+  // does this work with auto const&
+  for(size_t i = 0; i < sc_image_views_.size(); i++) {
+    VkImageView attachments[] = {
+            sc_image_views_[i]
+    };
+
+    VkFramebufferCreateInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    info.renderPass = renderpass_;
+    info.attachmentCount = 1;
+    info.pAttachments = attachments;
+    info.width = swapchain_extent_.width;
+    info.height = swapchain_extent_.height;
+    info.layers = 1;
+
+    if (vkCreateFramebuffer(device_, &info, nullptr, sc_framebuffers_[i].replace()) != VK_SUCCESS) {
+      throw std::runtime_error("Failed to create framebuffer for image view");
+    }
+  }
+
+  std::cout << "Number of created framebuffers: " << sc_framebuffers_.size() << "\n";
+}
+
 /*
  * create a new SPIR-V shadermodule from bytecode
  */

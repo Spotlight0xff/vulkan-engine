@@ -55,6 +55,7 @@ class Vulkan {
     VDeleter<VkSurfaceKHR> surface_{instance_, vkDestroySurfaceKHR};
     std::vector<VkImage> swapchain_images_;
     std::vector<VDeleter<VkImageView>> sc_image_views_;
+    std::vector<VDeleter<VkFramebuffer>> sc_framebuffers_;
     VkFormat swapchain_format_;
     VkExtent2D swapchain_extent_;
     VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
@@ -169,6 +170,7 @@ class Vulkan {
     void createRenderpass();
 
 
+    void createFramebuffers();
 };
 }
 
