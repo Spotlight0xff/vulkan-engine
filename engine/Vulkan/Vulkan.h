@@ -57,6 +57,7 @@ class Vulkan {
     std::vector<VDeleter<VkImageView>> sc_image_views_;
     std::vector<VDeleter<VkFramebuffer>> sc_framebuffers_;
     VDeleter<VkCommandPool> command_pool_{device_, vkDestroyCommandPool};
+    std::vector<VkCommandBuffer> command_buffers_;
     VkFormat swapchain_format_;
     VkExtent2D swapchain_extent_;
     VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
@@ -174,6 +175,8 @@ class Vulkan {
     void createFramebuffers();
 
     void createCommandPool();
+
+    void createCommandBuffers();
 };
 }
 

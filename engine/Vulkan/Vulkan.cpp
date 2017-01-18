@@ -35,6 +35,7 @@ void Vulkan::initVulkan() {
   createGraphicsPipeline();
   createFramebuffers();
   createCommandPool();
+  createCommandBuffers();
 }
 
 /*
@@ -584,6 +585,66 @@ void Vulkan::createCommandPool() {
     throw std::runtime_error("Failed to create command pool");
   }
   std::cout << "Created command pool successfully.\n";
+}
+
+void Vulkan::createCommandBuffers() {
+  command_buffers_.resize(sc_framebuffers_.size());
+
+  VkCommandBufferAllocateInfo alloc_info = {};
+  alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  alloc_info.commandBufferCount = command_buffers_.size();
+  alloc_info.commandPool = command_pool_;
+
+  // VK_COMMAND_BUFFER_LEVEL_PRIMARY: Can be submitted to a queue for execution, but cannot be called from other command buffers.
+  // VK_COMMAND_BUFFER_LEVEL_SECONDARY: Cannot be submitted directly, but can be called from primary command buffers.
+  alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+
+  if (vkAllocateCommandBuffers(device_, &alloc_info, command_buffers_.data()) != VK_SUCCESS) {
+    throw std::runtime_error("Failed to allocate command bufffers");
+  }
+
+  // Begin command buffer recording
+  for (size_t i=0; i < command_buffers_.size(); i++) {
+    VkCommandBufferBeginInfo begin_info = {};
+    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    // we can specify the command buffer usage:
+    // simultaneous: we can resubmit instantly, if we want
+    // one_time: will be rerecorded after submitting
+    // render_pass: used for renderpass (duh!)
+    begin_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+    begin_info.pInheritanceInfo = nullptr; // we don't inherit
+
+    if (vkBeginCommandBuffer(command_buffers_[i], &begin_info) != VK_SUCCESS) {
+      throw std::runtime_error("Failed to start recording command buffer");
+    }
+
+    // now lets add the renderpass to the command buffer
+    VkRenderPassBeginInfo render_info = {};
+    render_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    render_info.renderPass = renderpass_;
+    render_info.framebuffer = sc_framebuffers_[i];
+    render_info.renderArea.offset = {0, 0};
+    render_info.renderArea.extent = swapchain_extent_;
+
+    VkClearValue clear_color = {0.2, 0.3, 0.3, 1.0};
+    render_info.clearValueCount = 1;
+    render_info.pClearValues = &clear_color;
+
+    // we dont use a secondary command buffer (with subpass) -> inline
+    vkCmdBeginRenderPass(command_buffers_[i], &render_info, VK_SUBPASS_CONTENTS_INLINE);
+
+    vkCmdBindPipeline(command_buffers_[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline_);
+
+    // vertex count, instance count, first vertex, first instance
+    vkCmdDraw(command_buffers_[i], 3, 1, 0, 0);
+
+    vkCmdEndRenderPass(command_buffers_[i]);
+
+    if (vkEndCommandBuffer(command_buffers_[i]) != VK_SUCCESS) {
+      throw std::runtime_error("failed to record command buffer");
+    }
+    std::cout << "Successfully recorded command buffer i=" << i << "\n";
+  }
 }
 
 /*
