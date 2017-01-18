@@ -458,6 +458,42 @@ void Vulkan::createGraphicsPipeline() {
                              pipeline_layout_.replace()) != VK_SUCCESS) {
     throw std::runtime_error("failed to create pipeline layout!");
   }
+
+  // finally assemble the graphics pipeline
+  VkGraphicsPipelineCreateInfo pipeline_info = {};
+  pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+
+  // number of stages, we have vertex and fragment shader currently
+  pipeline_info.stageCount = 2;
+  pipeline_info.pStages = shader_stages;
+
+  pipeline_info.pVertexInputState = &vertex_input_info;
+  pipeline_info.pInputAssemblyState = &input_assembly;
+  pipeline_info.pRasterizationState = &rasterizer_info;
+  pipeline_info.pViewportState = &viewport_state;
+  pipeline_info.pMultisampleState = &multisampling;
+  pipeline_info.pColorBlendState = &color_blend_info;
+  pipeline_info.pDepthStencilState = nullptr;
+  pipeline_info.pDynamicState = nullptr;
+
+  pipeline_info.layout = pipeline_layout_;
+
+
+  // add renderpass
+  pipeline_info.renderPass = renderpass_;
+  pipeline_info.subpass = 0; // index of subpass
+
+  // we derive from no pipeline
+  pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
+  pipeline_info.basePipelineIndex = -1;
+
+  // VK_NULL_HANDLE is VkPipelineCache used to speed up pipeline creation
+  if (vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, graphics_pipeline_.replace()) != VK_SUCCESS) {
+    throw std::runtime_error("Failed to create graphics pipeline");
+  }
+
+
+
   std::cout << "Created graphics pipeline successfully.\n";
 }
 

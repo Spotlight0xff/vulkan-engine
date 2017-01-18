@@ -62,6 +62,7 @@ class Vulkan {
     VkQueue presentation_queue_;
     VDeleter<VkPipelineLayout> pipeline_layout_{device_, vkDestroyPipelineLayout};
     VDeleter<VkRenderPass> renderpass_{device_, vkDestroyRenderPass};
+    VDeleter<VkPipeline> graphics_pipeline_{device_, vkDestroyPipeline};
 
 
     GLFWwindow *window_;
