@@ -699,10 +699,8 @@ QueueFamilyIndices Vulkan::findQueueFamilies(VkPhysicalDevice device) {
   QueueFamilyIndices indices;
   uint32_t family_count = 0;
   vkGetPhysicalDeviceQueueFamilyProperties(device, &family_count, nullptr);
-  std::cout << "Number of queue families: " << family_count << "\n";
   std::vector<VkQueueFamilyProperties> queue_families(family_count);
   vkGetPhysicalDeviceQueueFamilyProperties(device, &family_count, queue_families.data());
-  std::cout << "Number of queue families: " << queue_families.size() << "\n";
 
   uint32_t i = 0;
   for (auto const& family : queue_families) {
@@ -949,7 +947,11 @@ void Vulkan::setupDebugCallback() {
 
   VkDebugReportCallbackCreateInfoEXT createInfo = {};
   createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
-  createInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_INFORMATION_BIT_EXT;
+  createInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT |
+                     VK_DEBUG_REPORT_WARNING_BIT_EXT/* |
+                     /*VK_DEBUG_REPORT_INFORMATION_BIT_EXT |
+                     VK_DEBUG_REPORT_DEBUG_BIT_EXT/* |
+                     VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT*/;
   createInfo.pUserData = this;
   createInfo.pfnCallback = Vulkan::debugCallback;
   if (CreateDebugReportCallbackEXT(instance_, &createInfo, nullptr, debug_cb_.replace()) != VK_SUCCESS) {
