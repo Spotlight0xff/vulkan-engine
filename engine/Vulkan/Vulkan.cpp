@@ -443,6 +443,7 @@ void Vulkan::createGraphicsPipeline() {
   //color_blend_attach.alphaBlendOp = VK_BLEND_OP_ADD;
 
   // Set the stuff we can change without recreating the whole graphics pipeline
+  // We *don't* use this currently
   VkDynamicState dynamic_states[] = {
           VK_DYNAMIC_STATE_VIEWPORT,
           VK_DYNAMIC_STATE_LINE_WIDTH
@@ -497,8 +498,6 @@ void Vulkan::createGraphicsPipeline() {
   if (vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, graphics_pipeline_.replace()) != VK_SUCCESS) {
     throw std::runtime_error("Failed to create graphics pipeline");
   }
-
-
 
   std::cout << "Created graphics pipeline successfully.\n";
 }
@@ -700,28 +699,27 @@ QueueFamilyIndices Vulkan::findQueueFamilies(VkPhysicalDevice device) {
   QueueFamilyIndices indices;
   uint32_t family_count = 0;
   vkGetPhysicalDeviceQueueFamilyProperties(device, &family_count, nullptr);
+  std::cout << "Number of queue families: " << family_count << "\n";
   std::vector<VkQueueFamilyProperties> queue_families(family_count);
   vkGetPhysicalDeviceQueueFamilyProperties(device, &family_count, queue_families.data());
+  std::cout << "Number of queue families: " << queue_families.size() << "\n";
 
   uint32_t i = 0;
   for (auto const& family : queue_families) {
-    if (family.queueCount > 0) {
-      // check if the queue family can do graphics
-      if (family.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+      if (family.queueCount > 0 && family.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
         indices.graphics_family = i;
       }
 
-      // check if the queue family can present to the surface
-      VkBool32 has_presentation = false;
-      vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface_, &has_presentation);
-      if (has_presentation) {
+      VkBool32 presentSupport = false;
+      vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface_, &presentSupport);
+
+      if (family.queueCount > 0 && presentSupport) {
         indices.presentation_family = i;
       }
-    }
 
-    if (indices.isComplete()) {
-      break;
-    }
+      if (indices.isComplete()) {
+        break;
+      }
     i++;
   }
   return indices;
@@ -826,6 +824,8 @@ void Vulkan::mainLoop() {
     glfwPollEvents();
     drawFrame();
   }
+  vkDeviceWaitIdle(device_);
+
   glfwTerminate();
 }
 
@@ -899,6 +899,10 @@ bool Vulkan::checkValidationLayers() {
 
   std::vector<VkLayerProperties> available_layers(layer_count);
   vkEnumerateInstanceLayerProperties(&layer_count, available_layers.data());
+
+  for(auto const& l : available_layers) {
+    std::cout << "Found layer: " << l.layerName << "\n\t" << l.description << std::endl;
+  }
 
   for(auto const& requested_layer : requested_validation_layers_) {
     bool layer_found = false;
