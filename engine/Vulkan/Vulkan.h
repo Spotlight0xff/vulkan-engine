@@ -49,9 +49,7 @@ class Vulkan {
   private:
     VDeleter<VkInstance> instance_{vkDestroyInstance};
     VDeleter<VkDebugReportCallbackEXT> debug_cb_{instance_, DestroyDebugReportCallbackEXT};
-    //VDeleter<VkPhysicalDevice> device_{instance_, vkDestroyDevice};
     VDeleter<VkDevice> device_{vkDestroyDevice};
-    VDeleter<VkSwapchainKHR> swapchain_{device_, vkDestroySwapchainKHR};
     VDeleter<VkSurfaceKHR> surface_{instance_, vkDestroySurfaceKHR};
     std::vector<VkImage> swapchain_images_;
     std::vector<VDeleter<VkImageView>> sc_image_views_;
@@ -68,6 +66,7 @@ class Vulkan {
     VDeleter<VkPipelineLayout> pipeline_layout_{device_, vkDestroyPipelineLayout};
     VDeleter<VkRenderPass> renderpass_{device_, vkDestroyRenderPass};
     VDeleter<VkPipeline> graphics_pipeline_{device_, vkDestroyPipeline};
+    VDeleter<VkSwapchainKHR> swapchain_{device_, vkDestroySwapchainKHR};
 
 
     GLFWwindow *window_;
