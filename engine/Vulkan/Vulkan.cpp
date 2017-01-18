@@ -34,6 +34,7 @@ void Vulkan::initVulkan() {
   createRenderpass();
   createGraphicsPipeline();
   createFramebuffers();
+  createCommandPool();
 }
 
 /*
@@ -566,6 +567,23 @@ void Vulkan::createFramebuffers() {
   }
 
   std::cout << "Number of created framebuffers: " << sc_framebuffers_.size() << "\n";
+}
+
+void Vulkan::createCommandPool() {
+  QueueFamilyIndices queue_indices = findQueueFamilies(physical_device_);
+
+  VkCommandPoolCreateInfo info = {};
+  info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+  info.queueFamilyIndex = queue_indices.graphics_family;
+  // possible flags:
+  // VK_COMMAND_POOL_CREATE_TRANSIENT_BIT:
+  //    indicate that we rerecord the command buffers often
+  info.flags = 0;
+
+  if (vkCreateCommandPool(device_, &info, nullptr, command_pool_.replace()) != VK_SUCCESS) {
+    throw std::runtime_error("Failed to create command pool");
+  }
+  std::cout << "Created command pool successfully.\n";
 }
 
 /*
