@@ -63,6 +63,8 @@ class Vulkan {
     VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
     VkQueue graphics_queue_;
     VkQueue presentation_queue_;
+    VDeleter<VkSemaphore> image_available_{device_, vkDestroySemaphore};
+    VDeleter<VkSemaphore> render_finished_{device_, vkDestroySemaphore};
     VDeleter<VkPipelineLayout> pipeline_layout_{device_, vkDestroyPipelineLayout};
     VDeleter<VkRenderPass> renderpass_{device_, vkDestroyRenderPass};
     VDeleter<VkPipeline> graphics_pipeline_{device_, vkDestroyPipeline};
@@ -177,6 +179,8 @@ class Vulkan {
     void createCommandPool();
 
     void createCommandBuffers();
+
+    void createSemaphores();
 };
 }
 

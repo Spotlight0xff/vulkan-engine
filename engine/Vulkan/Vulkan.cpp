@@ -647,6 +647,17 @@ void Vulkan::createCommandBuffers() {
   }
 }
 
+void Vulkan::createSemaphores() {
+  VkSemaphoreCreateInfo info = {};
+  info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+  if (vkCreateSemaphore(device_, &info, nullptr, image_available_.replace()) != VK_SUCCESS ||
+      vkCreateSemaphore(device_, &info, nullptr, render_finished_.replace()) != VK_SUCCESS    ) {
+    throw std::runtime_error("Failed to create semaphores");
+  }
+
+  std::cout << "Successfully created semaphores.\n";
+}
 /*
  * create a new SPIR-V shadermodule from bytecode
  */
@@ -789,8 +800,13 @@ void Vulkan::initWindow() {
 void Vulkan::mainLoop() {
   while (!glfwWindowShouldClose(window_)) {
     glfwPollEvents();
+    drawFrame();
   }
   glfwTerminate();
+}
+
+void Vulkan::drawFrame() {
+
 }
 
 void Vulkan::cbKeyboardDispatcher(
