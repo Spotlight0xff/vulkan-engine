@@ -43,6 +43,7 @@ class Vulkan {
     Vulkan();
 
     void init();
+
     void mainLoop();
 
   private:
@@ -60,18 +61,18 @@ class Vulkan {
     VkQueue graphics_queue_;
     VkQueue presentation_queue_;
     VDeleter<VkPipelineLayout> pipeline_layout_{device_, vkDestroyPipelineLayout};
+    VDeleter<VkRenderPass> renderpass_{device_, vkDestroyRenderPass};
 
 
-
-    GLFWwindow* window_;
+    GLFWwindow *window_;
     const int width_ = 800;
     const int height_ = 600;
-    const std::vector<const char*> requested_validation_layers_ = {
+    const std::vector<const char *> requested_validation_layers_ = {
             "VK_LAYER_LUNARG_standard_validation"
     };
 
     // vector of required extensions which we check in isDeviceSuitable
-    const std::vector<const char*> required_device_extensions_ = {
+    const std::vector<const char *> required_device_extensions_ = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     };
 
@@ -85,18 +86,18 @@ class Vulkan {
     void initWindow();
 
     static void cbKeyboardDispatcher(
-            GLFWwindow* window,
+            GLFWwindow *window,
             int key, int scancode, int action, int mods);
 
 
     void cbKeyboard(
-            GLFWwindow* window,
+            GLFWwindow *window,
             int key, int scancode, int action, int mods);
 
     bool checkValidationLayers();
 
     // return extensions required to operate
-    std::vector<const char*> getRequiredExtensions();
+    std::vector<const char *> getRequiredExtensions();
 
     void initVulkan();
 
@@ -105,11 +106,15 @@ class Vulkan {
     void setupDebugCallback();
 
     void selectPhysicalDevice();
-    bool isDeviceSuitable(VkPhysicalDevice const& device);
+
+    bool isDeviceSuitable(VkPhysicalDevice const &device);
 
     // load extension function "vkCreateDebugReportCallbackEXT"
-    static VkResult CreateDebugReportCallbackEXT(VkInstance instance, const VkDebugReportCallbackCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugReportCallbackEXT* pCallback) {
-        auto func = (PFN_vkCreateDebugReportCallbackEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
+    static VkResult
+    CreateDebugReportCallbackEXT(VkInstance instance, const VkDebugReportCallbackCreateInfoEXT *pCreateInfo,
+                                 const VkAllocationCallbacks *pAllocator, VkDebugReportCallbackEXT *pCallback) {
+        auto func = (PFN_vkCreateDebugReportCallbackEXT) vkGetInstanceProcAddr(instance,
+                                                                               "vkCreateDebugReportCallbackEXT");
         if (func != nullptr) {
             return func(instance, pCreateInfo, pAllocator, pCallback);
         } else {
@@ -117,8 +122,10 @@ class Vulkan {
         }
     }
 
-    static void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT callback, const VkAllocationCallbacks* pAllocator) {
-        auto func = (PFN_vkDestroyDebugReportCallbackEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
+    static void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT callback,
+                                              const VkAllocationCallbacks *pAllocator) {
+        auto func = (PFN_vkDestroyDebugReportCallbackEXT) vkGetInstanceProcAddr(instance,
+                                                                                "vkDestroyDebugReportCallbackEXT");
         if (func != nullptr) {
             func(instance, callback, pAllocator);
         }
@@ -130,9 +137,9 @@ class Vulkan {
             uint64_t obj,
             size_t location,
             int32_t code,
-            const char* prefix,
-            const char* msg,
-            void* userData);
+            const char *prefix,
+            const char *msg,
+            void *userData);
 
     void createLogicalDevice();
 
@@ -151,12 +158,17 @@ class Vulkan {
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
 
     void createSwapChain();
+
     void createImageViews();
+
     void createGraphicsPipeline();
-    void createShaderModule(const std::vector<char>& code, VDeleter<VkShaderModule>& shaderModule);
+
+    void createShaderModule(const std::vector<char> &code, VDeleter<VkShaderModule> &shaderModule);
+
+    void createRenderpass();
+
+
 };
-
-
 }
 
 #endif //VULKAN_ENGINE_VULKAN_H

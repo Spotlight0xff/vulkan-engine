@@ -31,6 +31,7 @@ void Vulkan::initVulkan() {
   createLogicalDevice();
   createSwapChain();
   createImageViews();
+  createRenderpass();
   createGraphicsPipeline();
 }
 
@@ -449,6 +450,48 @@ void Vulkan::createGraphicsPipeline() {
   std::cout << "Created graphics pipeline successfully.\n";
 }
 
+
+void Vulkan::createRenderpass() {
+  // just the attachment for the swapchain image
+  VkAttachmentDescription attachment = {};
+  attachment.format = this->swapchain_format_;
+  attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+  attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; // clear framebuffer
+  attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE; // Rendered stuff should stay in memory
+
+  // don't care about stencil buffer
+  attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+  attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // we would like to have the images in the swap chain
+
+  // create the reference to the created color attachment
+  VkAttachmentReference attachment_ref = {};
+  attachment_ref.attachment = 0; // index
+  attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+  // create the subpass for this renderpass
+  // can be used for post-processing stuff
+  VkSubpassDescription subpass = {};
+  subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS; // graphics subpass
+  subpass.colorAttachmentCount = 1;
+  subpass.pColorAttachments = &attachment_ref;
+
+
+  // finally create the render pass
+  VkRenderPassCreateInfo renderpass = {};
+  renderpass.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+  renderpass.attachmentCount = 1;
+  renderpass.pAttachments = &attachment;
+  renderpass.subpassCount = 1;
+  renderpass.pSubpasses = &subpass;
+
+  if (vkCreateRenderPass(device_, &renderpass, nullptr, renderpass_.replace()) != VK_SUCCESS) {
+    throw std::runtime_error("Failed to create render pass");
+  }
+  std::cout << "Created render pass successfully.\n";
+}
 /*
  * create a new SPIR-V shadermodule from bytecode
  */
