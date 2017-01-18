@@ -416,6 +416,17 @@ void Vulkan::createGraphicsPipeline() {
   color_blend_attach.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
   color_blend_attach.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
 
+  VkPipelineColorBlendStateCreateInfo color_blend_info = {};
+  color_blend_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+  color_blend_info.logicOpEnable = VK_FALSE;
+  color_blend_info.logicOp = VK_LOGIC_OP_COPY; // Optional
+  color_blend_info.attachmentCount = 1;
+  color_blend_info.pAttachments = &color_blend_attach;
+  color_blend_info.blendConstants[0] = 0.0f; // Optional
+  color_blend_info.blendConstants[1] = 0.0f; // Optional
+  color_blend_info.blendConstants[2] = 0.0f; // Optional
+  color_blend_info.blendConstants[3] = 0.0f; // Optional
+
   // with alpha-blending enabled: see VkBlendFactor and VkBlendOp
   //color_blend_attach.blendEnable = VK_TRUE;
   //color_blend_attach.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
